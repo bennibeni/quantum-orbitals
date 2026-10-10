@@ -1,0 +1,31 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({channel:'msedge',headless:true});
+try {
+  const page=await browser.newPage({viewport:{width:1440,height:1100}}),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:5180');
+  await page.locator('canvas').waitFor();
+  assert.equal(await page.locator('.qo-element').count(),118);
+  await page.getByLabel('Guscio principale',{exact:true}).selectOption('7');
+  await page.getByLabel('Sottoguscio',{exact:true}).selectOption('6');
+  await page.getByRole('combobox',{name:'Variante dell’orbitale',exact:true}).selectOption('-6');
+  assert.equal(await page.locator('.qo-lit').count(),0);
+  await page.getByLabel('Guscio principale',{exact:true}).selectOption('1');
+  assert.equal(await page.getByLabel('Sottoguscio',{exact:true}).inputValue(),'0');
+  assert.equal(await page.getByRole('combobox',{name:'Variante dell’orbitale',exact:true}).inputValue(),'0');
+  await page.getByRole('button',{name:'2pₓ',exact:true}).click();
+  await page.getByRole('button',{name:/^Cu, numero atomico/}).click();
+  assert.match(await page.locator('.qo-detail').innerText(),/29 elettroni/);
+  await page.locator('.qo-config-buttons button').filter({hasText:'3d'}).click();
+  await page.locator('.qo-boxes button').first().click();
+  assert.equal(await page.getByLabel('Rappresentazione',{exact:true}).count(),0);
+  await page.getByRole('combobox',{name:'Variante dell’orbitale',exact:true}).selectOption('2');
+  await page.getByLabel('Ruota orizzontalmente',{exact:true}).click();
+  await page.screenshot({path:'preview-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'preview-mobile.png',fullPage:true});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  assert.deepEqual(errors,[]);
+  console.log('UI OK: selettori, vincoli, tavola, configurazioni, modalità, rotazione, mobile; nessun errore runtime.');
+} finally {await browser.close();}
